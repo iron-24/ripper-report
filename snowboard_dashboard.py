@@ -23,7 +23,8 @@ resorts = [
 @st.cache_data(ttl=1800)  # refresh every 30 min
 def get_reddit_posts(query):
     url = f"https://www.reddit.com/r/skiing+r/snowboarding+r/Tahoe/search.json?q={query}&sort=new&t=year&limit=40"
-    headers = {"User-agent": "GnarCal-Radar/1.0 (by xAI)"}
+    headers = {"User-Agent": "ripper-report/1.0"}
+
     try:
         r = requests.get(url, headers=headers, timeout=10)
         if r.status_code == 200:
@@ -33,12 +34,14 @@ def get_reddit_posts(query):
                 title = post["data"]["title"]
                 selftext = post["data"].get("selftext", "")
                 full_text = (title + " " + selftext).strip()
-                if len(full_text) > 30 and "http" not in full_text.lower():  # filter spam
+                if len(full_text) > 30 and "http" not in full_text.lower():
                     texts.append(full_text)
             return texts[:25]
     except:
         pass
-    return ["Great resort!", "Love this place"]  # fallback
+
+    return ["Great resort!", "Love this place"]
+
 
 @st.cache_data(ttl=1800)
 def analyze_sentiment(texts):
@@ -50,37 +53,39 @@ def analyze_sentiment(texts):
     return round(avg, 3), round(positive_pct), len(texts)
 
 def get_nws_weather(lat, lon):
-    headers = {"User-Agent": "GnarCal-Radar/1.0 (contact: your-email@example.com)"}  # Be polite—use your real email if deploying
+    headers = {"User-Agent": "ripper-report/1.0 (contact: jvinprofessional@gmail.com)"}
+
     try:
-        # Get point forecast
         point_url = f"https://api.weather.gov/points/{lat},{lon}"
         point_data = requests.get(point_url, headers=headers, timeout=10).json()
+
         forecast_url = point_data["properties"]["forecast"]
         forecast_data = requests.get(forecast_url, headers=headers, timeout=10).json()
-        
-        # Current/near-term: Grab first period
+
         periods = forecast_data["properties"]["periods"]
         if periods:
             first_period = periods[0]
             temp = first_period.get("temperature", "N/A")
             desc = first_period.get("shortForecast", "No forecast")
             return f"{temp}°F – {desc}"
-        
-        # Alert check (bonus!)
+
+        # check alerts
         alert_url = f"https://api.weather.gov/alerts/active?point={lat},{lon}"
         alert_data = requests.get(alert_url, headers=headers, timeout=10).json()
         alerts = alert_data.get("features", [])
         alert_flag = " ⚠️ Alert" if alerts else ""
-        
+
         return f"Loading...{alert_flag}"
+
     except Exception as e:
         return f"API hiccup ({str(e)[:50]}...)"
 
-# === STREAMLIT APP ===
-st.set_page_config(page_title="GnarCal Radar", layout="wide")
-st.title("🏂 GnarCal Radar – NorCal Snowboard Stoke Tracker")
 
-st.markdown("Live Reddit sentiment • NWS weather (free API) • 2025/26 prices • Advanced terrain %")
+# === STREAMLIT APP ===
+st.set_page_config(page_title="Ripper Report", layout="wide")
+st.title("🏂 Ripper Report – NorCal snowboarding location tracker")
+
+#st.markdown("Live Reddit sentiment • NWS weather (free API) • 2025/26 prices • Advanced terrain %")
 
 data = []
 for resort in resorts:
@@ -115,7 +120,7 @@ df = pd.DataFrame(data)
 # === DISPLAY ===
 st.dataframe(df, use_container_width=True, hide_index=True)
 
-# Charts (Plotly optional—see previous fix if needed)
+
 try:
     import plotly.express as px
     st.subheader("Daily Cost Shred (Pass + Rental)")
@@ -126,7 +131,7 @@ try:
     fig_bar.update_layout(showlegend=False, height=500)
     st.plotly_chart(fig_bar, use_container_width=True)
 
-    st.subheader("Terrain Gnar Radar")
+    st.subheader("Terrain Report")
     radar_data = pd.DataFrame([
         dict(Resort=r["name"], Beginner=100-r["advanced"]-40, Intermediate=40, Advanced=r["advanced"]) for r in resorts
     ])
@@ -136,4 +141,4 @@ try:
 except ImportError:
     st.info("`pip install plotly` for the charts—app works without 'em!")
 
-st.caption("Sentiment: Recent Reddit vibes (r/skiing + r/snowboarding + r/Tahoe). Weather: Free NWS API (api.weather.gov)—accurate AF for Tahoe. Prices editable in code.")
+st.caption("Sentiment: Recent Reddit vibes (r/skiing + r/snowboarding + r/Tahoe). Weather: Free NWS API (api.weather.gov)—accurate for Tahoe. Prices editable in code.")
