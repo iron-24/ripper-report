@@ -462,7 +462,7 @@ if search_button and trip_days >= 1:
                     "Resort": r["Resort"],
                     "Distance": r["Distance"],
                     "Weather": r["Weather"],
-                    "Vibe": r["Reddit Vibe"],
+                    "Vibe": r["Reddit Vibe"],    
                     "Est. Cost": r["Est. Total"],
                 } for r in resort_data])
                 
